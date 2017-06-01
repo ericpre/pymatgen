@@ -57,7 +57,7 @@ class XYZ(object):
         return self._mols
 
     @staticmethod
-    def _from_frame_string(contents):
+    def _from_frame_string(contents, num_atom_properties=3):
         """
         Convert a single frame XYZ string to a molecule
         """
@@ -65,9 +65,8 @@ class XYZ(object):
         num_sites = int(lines[0])
         coords = []
         sp = []
-        coord_patt = re.compile(
-            r"(\w+)\s+([0-9\-\.e]+)\s+([0-9\-\.e]+)\s+([0-9\-\.e]+)"
-        )
+        parameters = r"\s+([0-9\-\.e]+)" * num_atom_properties
+        coord_patt = re.compile(r"(\w+)" + parameters)
         for i in range(2, 2 + num_sites):
             m = coord_patt.search(lines[i])
             if m:
@@ -77,13 +76,12 @@ class XYZ(object):
         return Molecule(sp, coords)
 
     @staticmethod
-    def from_string(contents):
+    def from_string(contents, num_atom_properties=3):
         """
         Creates XYZ object from a string.
-
         Args:
             contents: String representing an XYZ file.
-
+            num_atom_properties: number of properties for each atom
         Returns:
             XYZ object
         """
@@ -92,13 +90,15 @@ class XYZ(object):
         white_space = r"[ \t\r\f\v]"
         natoms_line = white_space + r"*\d+" + white_space + r"*\n"
         comment_line = r"[^\n]*\n"
-        coord_lines = r"(\s*\w+\s+[0-9\-\.e]+\s+[0-9\-\.e]+\s+[0-9\-\.e]+\s*\n)+"
+        parameters = r"\s+[0-9\-\.e]+" * num_atom_properties
+        coord_lines = r"(\s*\w+\s" + parameters + r"\s*\n)+"
         frame_pattern_text = natoms_line + comment_line + coord_lines
         pat = re.compile(frame_pattern_text, re.MULTILINE)
         mols = []
         for xyz_match in pat.finditer(contents):
             xyz_text = xyz_match.group(0)
-            mols.append(XYZ._from_frame_string(xyz_text))
+            mols.append(XYZ._from_frame_string(xyz_text,
+                                               num_atom_properties=num_atom_properties))
         return XYZ(mols)
 
     @staticmethod
